@@ -1,0 +1,333 @@
+library community.livecode.trevordevore.fswatch
+
+  // Header: https://github.com/emcrisostomo/fswatch/blob/master/libfswatch/src/libfswatch/c/libfswatch.h
+
+  use com.livecode.engine
+  use com.livecode.foreign
+
+  metadata title is "fswatch"
+  metadata author is "Trevor DeVore"
+  metadata version is "0.0.1"
+
+  public type FSW_HANDLE is Pointer
+  public type FSW_STATUS is CInt
+
+  -- variable system_default_monitor_type as Number = 0
+  -- variable fsevents_monitor_type as Number = 1
+  -- variable kqueue_monitor_type as Number = 2
+  -- variable inotify_monitor_type as Number = 3
+  -- variable windows_monitor_type as Number = 4
+  -- variable poll_monitor_type as Number = 5
+  -- variable fen_monitor_type as Number = 6
+
+  variable sessionHandle as optional FSW_HANDLE
+
+  private foreign handler fsw_last_error () \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_last_error"
+  private foreign handler fsw_init_library () \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_init_library"
+  private foreign handler fsw_init_session (in pFSWMonitorType as CInt) \
+        returns FSW_HANDLE \
+        binds to "c:libfswatch>fsw_init_session"
+  private foreign handler fsw_add_path (in pFSWHandle as FSW_HANDLE, in pPath as ZStringNative) \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_add_path"
+  private foreign handler fsw_add_property (in pFSWHandle as FSW_HANDLE, in pKey as ZStringNative, in pValue as ZStringNative) \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_add_property"
+  private foreign handler fsw_set_allow_overflow (in pFSWHandle as FSW_HANDLE, in pAllow as CBool) \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_set_allow_overflow"
+  private foreign handler fsw_set_callback (in pFSWHandle as FSW_HANDLE) \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_set_callback"
+  private foreign handler fsw_set_latency (in pFSWHandle as FSW_HANDLE, in pLatency as CDouble) \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_set_latency"
+  private foreign handler fsw_set_recursive (in pFSWHandle as FSW_HANDLE, in pRecursive as CBool) \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_set_recursive"
+  private foreign handler fsw_set_directory_only (in pFSWHandle as FSW_HANDLE, in pDirectoryOnly as CBool) \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_set_directory_only"
+  private foreign handler fsw_set_follow_symlinks (in pFSWHandle as FSW_HANDLE, in pFollow as CBool) \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_set_follow_symlinks"
+  private foreign handler fsw_start_monitor (in pFSWHandle as FSW_HANDLE) \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_start_monitor"
+  private foreign handler fsw_stop_monitor (in pFSWHandle as FSW_HANDLE) \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_stop_monitor"
+  private foreign handler fsw_is_running (in pFSWHandle as FSW_HANDLE) \
+        returns CBool \
+        binds to "c:libfswatch>fsw_is_running"
+  private foreign handler fsw_destroy_session (in pFSWHandle as FSW_HANDLE) \
+        returns FSW_STATUS \
+        binds to "c:libfswatch>fsw_destroy_session"
+
+
+  // CALLBACKS
+  // How do define the fsw_cevent struct?
+  // https://github.com/emcrisostomo/fswatch/blob/master/libfswatch/src/libfswatch/c/cevent.h
+  foreign handler type FSW_CEVENT_CALLBACK(in pEvent as ??, in pEventNum as CInt, in pData as Pointer) returns nothing
+
+  public foreign handler c_process_events (in pHandler as FSW_CEVENT_CALLBACK) \
+        returns nothing binds to "c:libfswatch>c_process_events"
+
+  private handler SetupCallbacks() returns nothing
+    unsafe
+      c_process_events(EventCallback)
+    end unsafe
+  end handler
+
+
+  handler EventCallback(in pEvent as ??, in pEventNum as Integer, in pData as Pointer) returns nothing
+
+  end handler
+
+  // END CALLBACKS
+
+
+  public handler fswatchInitLibrary() returns String
+    variable fsw_status as Integer
+
+    unsafe
+      SetupCallbacks()
+      put fsw_init_library() into fsw_status
+    end unsafe
+
+    return FSW_STATUSAsString(fsw_status)
+  end handler
+
+
+  public handler fswatchInitSession() returns String
+    variable fsw_status as Integer
+
+    unsafe
+      put fsw_init_session(0) into sessionHandle
+      if sessionHandle is nothing then
+        put fsw_last_error() into fsw_status
+      end if
+    end unsafe
+
+    if sessionHandle then
+      unsafe
+        fsw_set_callback()
+      end unsafe
+    end if
+
+    return FSW_STATUSAsString(fsw_status)
+  end handler
+
+
+  public handler fswatchAddPath(in pPath as String) returns String
+    variable tError as String
+
+    unsafe
+      if sessionHandle is not nothing then
+        put FSW_STATUSAsString(fsw_add_path(sessionHandle, pPath)) into tError
+      else
+        put noSession() into tError
+      end if
+    end unsafe
+
+    return tError
+  end handler
+
+
+  public handler fswatchAddProperty(in pKey as String, in pValue as String) returns String
+    variable tError as String
+
+    unsafe
+      if sessionHandle is not nothing then
+        put FSW_STATUSAsString(fsw_add_property(sessionHandle, pKey, pValue)) into tError
+      else
+        put noSession() into tError
+      end if
+    end unsafe
+
+    return tError
+  end handler
+
+
+  public handler fswatchSetAllowOVerflow(in pAllow as Boolean) returns String
+    variable tError as String
+
+    unsafe
+      if sessionHandle is not nothing then
+        put FSW_STATUSAsString(fsw_set_allow_overflow(sessionHandle, pAllow)) into tError
+      else
+        put noSession() into tError
+      end if
+    end unsafe
+
+    return tError
+  end handler
+
+
+  public handler fswatchSetLatency(in pLatency as Number) returns String
+    variable tError as String
+
+    unsafe
+      if sessionHandle is not nothing then
+        put FSW_STATUSAsString(fsw_set_latency(sessionHandle, pLatency)) into tError
+      else
+        put noSession() into tError
+      end if
+    end unsafe
+
+    return tError
+  end handler
+
+
+  public handler fswatchSetRecursive(in pRecursive as Boolean) returns String
+    variable tError as String
+
+    unsafe
+      if sessionHandle is not nothing then
+        put FSW_STATUSAsString(fsw_set_recursive(sessionHandle, pRecursive)) into tError
+      else
+        put noSession() into tError
+      end if
+    end unsafe
+
+    return tError
+  end handler
+
+
+  public handler fswatchSetDirectoryOnly(in pDirectoryOnly as Boolean) returns String
+    variable tError as String
+
+    unsafe
+      if sessionHandle is not nothing then
+        put FSW_STATUSAsString(fsw_set_directory_only(sessionHandle, pDirectoryOnly)) into tError
+      else
+        put noSession() into tError
+      end if
+    end unsafe
+
+    return tError
+  end handler
+
+
+  public handler fswatchSetFollowSymlinks(in pFollow as Boolean) returns String
+    variable tError as String
+
+    unsafe
+      if sessionHandle is not nothing then
+        put FSW_STATUSAsString(fsw_set_follow_symlinks(sessionHandle, pFollow)) into tError
+      else
+        put noSession() into tError
+      end if
+    end unsafe
+
+    return tError
+  end handler
+
+
+  public handler fswatchStartMonitor() returns String
+    variable tError as String
+
+    unsafe
+      if sessionHandle is not nothing then
+        put FSW_STATUSAsString(fsw_start_monitor(sessionHandle)) into tError
+      else
+        put noSession() into tError
+      end if
+    end unsafe
+
+    return tError
+  end handler
+
+
+  public handler fswatchStopMonitor() returns String
+    variable tError as String
+
+    unsafe
+      if sessionHandle is not nothing then
+        put FSW_STATUSAsString(fsw_stop_monitor(sessionHandle)) into tError
+      else
+        put noSession() into tError
+      end if
+    end unsafe
+
+    return tError
+  end handler
+
+
+  public handler fswatchIsRunning() returns Boolean
+    variable tRunning as Boolean
+
+    put false into tRunning
+
+    unsafe
+      if sessionHandle is not nothing then
+        put fsw_is_running(sessionHandle) into tRunning
+      end if
+    end unsafe
+
+    return tRunning
+  end handler
+
+
+  public handler fswatchDestroySession() returns String
+    variable fsw_status as Integer
+
+    unsafe
+      if sessionHandle is not nothing then
+        put fsw_destroy_session(sessionHandle) into fsw_status
+        if fsw_status is 0 then
+          put nothing into sessionHandle
+        end if
+      end if
+    end unsafe
+
+    return FSW_STATUSAsString(fsw_status)
+  end handler
+
+
+  private handler noSession() returns String
+    return "no session exists"
+  end handler
+
+
+  private handler FSW_STATUSAsString(in pFSStatus as Number) returns String
+    if pFSSTatus = 0 then // FSW_OK
+      return ""
+    else if pFSSTatus = 1 shifted left by 0 bitwise then // FSW_ERR_UNKNOWN_ERROR
+      return "An unknown error has occurred."
+    else if pFSSTatus = 1 shifted left by 1 bitwise then // FSW_ERR_SESSION_UNKNOWN
+      return "The session specified by the handle is unknown."
+    else if pFSSTatus = 1 shifted left by 1 bitwise then // FSW_ERR_MONITOR_ALREADY_EXISTS
+      return "The session already contains a monitor."
+    else if pFSSTatus = 1 shifted left by 3 bitwise then // FSW_ERR_MEMORY
+      return "An error occurred while invoking a memory management routine."
+    else if pFSSTatus = 1 shifted left by 4 bitwise then // FSW_ERR_UNKNOWN_MONITOR_TYPE
+      return "The specified monitor type does not exist."
+    else if pFSSTatus = 1 shifted left by 5 bitwise then // FSW_ERR_CALLBACK_NOT_SET
+      return "The callback has not been set."
+    else if pFSSTatus = 1 shifted left by 6 bitwise then // FSW_ERR_PATHS_NOT_SET
+      return "The paths to watch have not been set."
+    else if pFSSTatus = 1 shifted left by 7 bitwise then // FSW_ERR_MISSING_CONTEXT
+      return "The callback context has not been set."
+    else if pFSSTatus = 1 shifted left by 8 bitwise then // FSW_ERR_INVALID_PATH
+      return "The path is invalid."
+    else if pFSSTatus = 1 shifted left by 9 bitwise then // FSW_ERR_INVALID_CALLBACK
+      return "The callback is invalid."
+    else if pFSSTatus = 1 shifted left by 10 bitwise then // FSW_ERR_INVALID_LATENCY
+      return "The latency is invalid."
+    else if pFSSTatus = 1 shifted left by 11 bitwise then // FSW_ERR_INVALID_REGEX
+      return "The regular expression is invalid."
+    else if pFSSTatus = 1 shifted left by 12 bitwise then // FSW_ERR_MONITOR_ALREADY_RUNNING
+      return "A monitor is already running in the specified session."
+    else if pFSSTatus = 1 shifted left by 13 bitwise then // FSW_ERR_UNKNOWN_VALUE
+      return "The value is unknown."
+    else if pFSSTatus = 1 shifted left by 14 bitwise then // FSW_ERR_INVALID_PROPERTY
+      return "The property is invalid."
+    end if
+  end handler
+
+end library
