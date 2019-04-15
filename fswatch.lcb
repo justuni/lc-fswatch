@@ -74,13 +74,20 @@ library community.livecode.trevordevore.fswatch
   // https://github.com/emcrisostomo/fswatch/blob/master/libfswatch/src/libfswatch/c/cevent.h
   foreign handler type FSW_CEVENT_CALLBACK(in pEvent as ??, in pEventNum as CInt, in pData as Pointer) returns nothing
 
-  public foreign handler c_process_events (in pHandler as FSW_CEVENT_CALLBACK) \
-        returns nothing binds to "c:libfswatch>c_process_events"
+  public foreign handler fsw_set_callback (in pHandler as FSW_CEVENT_CALLBACK) \
+        returns FSW_STATUS binds to "c:libfswatch>fsw_set_callback"
 
-  private handler SetupCallbacks() returns nothing
+
+  private handler SetupCallback() returns Integer
+    // Currently no support for setting data to pass around.
+    variable tData as Pointer
+    variable fsw_status as Integer
+
     unsafe
-      c_process_events(EventCallback)
+      put FSW_STATUSAsString(fsw_set_callback(sessionHandle, EventCallback, tData)) into fsw_status
     end unsafe
+
+    return fsw_status
   end handler
 
 
@@ -95,7 +102,6 @@ library community.livecode.trevordevore.fswatch
     variable fsw_status as Integer
 
     unsafe
-      SetupCallbacks()
       put fsw_init_library() into fsw_status
     end unsafe
 
@@ -108,7 +114,9 @@ library community.livecode.trevordevore.fswatch
 
     unsafe
       put fsw_init_session(0) into sessionHandle
-      if sessionHandle is nothing then
+      if sessionHandle is not nothing then
+        put SetupCallback() into fsw_status
+      else
         put fsw_last_error() into fsw_status
       end if
     end unsafe
