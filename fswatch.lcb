@@ -98,6 +98,17 @@ library community.livecode.trevordevore.fswatch
   // END CALLBACKS
 
 
+  public handler fswatchLastError() returns String
+    variable tError as String
+
+    unsafe
+      put FSW_STATUSAsString(fsw_last_error()) into tError
+    end unsafe
+
+    return tError
+  end handler
+
+
   public handler fswatchInitLibrary() returns String
     variable fsw_status as Integer
 
@@ -335,6 +346,8 @@ library community.livecode.trevordevore.fswatch
       return "The value is unknown."
     else if pFSSTatus = 1 shifted left by 14 bitwise then // FSW_ERR_INVALID_PROPERTY
       return "The property is invalid."
+    else
+      return "unknown error"
     end if
   end handler
 
