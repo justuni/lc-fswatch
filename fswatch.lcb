@@ -12,6 +12,13 @@ library community.livecode.trevordevore.fswatch
   public type FSW_HANDLE is Pointer
   public type FSW_STATUS is CInt
 
+  // https://github.com/emcrisostomo/fswatch/blob/master/libfswatch/src/libfswatch/c/cevent.h
+
+  // Define fsw_cevent struct which is a parameter for callback function
+  public foreign type fsw_cevent binds to "MCAggregateTypeInfo:rere"
+  // Define callback function type
+  foreign handler type FSW_CEVENT_CALLBACK(in pEvents as fsw_cevent, in pEventNum as CInt, in pData as optional Pointer) returns nothing
+
   -- variable system_default_monitor_type as Number = 0
   -- variable fsevents_monitor_type as Number = 1
   -- variable kqueue_monitor_type as Number = 2
@@ -40,7 +47,7 @@ library community.livecode.trevordevore.fswatch
   private foreign handler fsw_set_allow_overflow (in pFSWHandle as FSW_HANDLE, in pAllow as CBool) \
         returns FSW_STATUS \
         binds to "c:libfswatch>fsw_set_allow_overflow"
-  private foreign handler fsw_set_callback (in pFSWHandle as FSW_HANDLE) \
+  private foreign handler fsw_set_callback (in pFSWHandle as FSW_HANDLE, in pCallbackHandler as FSW_CEVENT_CALLBACK, in pData as optional Pointer) \
         returns FSW_STATUS \
         binds to "c:libfswatch>fsw_set_callback"
   private foreign handler fsw_set_latency (in pFSWHandle as FSW_HANDLE, in pLatency as CDouble) \
@@ -70,31 +77,24 @@ library community.livecode.trevordevore.fswatch
 
 
   // CALLBACKS
-  // How do define the fsw_cevent struct?
-  // https://github.com/emcrisostomo/fswatch/blob/master/libfswatch/src/libfswatch/c/cevent.h
-  foreign handler type FSW_CEVENT_CALLBACK(in pEvent as ??, in pEventNum as CInt, in pData as Pointer) returns nothing
-
-  public foreign handler fsw_set_callback (in pHandler as FSW_CEVENT_CALLBACK) \
-        returns FSW_STATUS binds to "c:libfswatch>fsw_set_callback"
-
-
   private handler SetupCallback() returns Integer
     // Currently no support for setting data to pass around.
-    variable tData as Pointer
+    variable tData as optional Pointer
     variable fsw_status as Integer
 
     unsafe
-      put FSW_STATUSAsString(fsw_set_callback(sessionHandle, EventCallback, tData)) into fsw_status
+      // Pass in reference to callback handler
+      put fsw_set_callback(sessionHandle, EventCallback, tData) into fsw_status
     end unsafe
 
     return fsw_status
   end handler
 
 
-  handler EventCallback(in pEvent as ??, in pEventNum as Integer, in pData as Pointer) returns nothing
-
+  // pEvent is the struct which LiveCode converts to a list
+  handler EventCallback(in pEvent as List, in pEventNum as Integer, in pData as optional Pointer) returns nothing
+    log (pEvent)
   end handler
-
   // END CALLBACKS
 
 
@@ -121,9 +121,9 @@ library community.livecode.trevordevore.fswatch
       end if
     end unsafe
 
-    if sessionHandle then
+    if sessionHandle is not nothing then
       unsafe
-        fsw_set_callback()
+        put SetupCallback() into fsw_status
       end unsafe
     end if
 
