@@ -17,7 +17,7 @@ library community.livecode.trevordevore.fswatch
   // Define fsw_cevent struct which is a parameter for callback function
   public foreign type fsw_cevent binds to "MCAggregateTypeInfo:rere"
   // Define callback function type
-  foreign handler type FSW_CEVENT_CALLBACK(in pEvents as fsw_cevent, in pEventNum as CInt, in pData as optional Pointer) returns nothing
+  foreign handler type FSW_CEVENT_CALLBACK(in pEvents as Pointer, in pEventNum as CUInt, in pData as optional Pointer) returns nothing
 
   -- variable system_default_monitor_type as Number = 0
   -- variable fsevents_monitor_type as Number = 1
@@ -91,9 +91,10 @@ library community.livecode.trevordevore.fswatch
   end handler
 
 
-  // pEvent is the struct which LiveCode converts to a list
-  handler EventCallback(in pEvent as List, in pEventNum as Integer, in pData as optional Pointer) returns nothing
-    log (pEvent)
+  // pEvents is a pointer to an array of fsw_cevent structures
+  // pEventNum is the size of the pEvents array
+  handler EventCallback(in pEvents as Pointer, in pEventNum as Integer, in pData as optional Pointer) returns nothing
+    log "hi there"
   end handler
   // END CALLBACKS
 
