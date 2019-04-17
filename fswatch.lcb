@@ -133,12 +133,6 @@ library community.livecode.trevordevore.fswatch
       end if
     end unsafe
 
-    if sessionHandle is not nothing then
-      unsafe
-        put SetupCallback() into fsw_status
-      end unsafe
-    end if
-
     return FSW_STATUSAsString(fsw_status)
   end handler
 
