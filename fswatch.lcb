@@ -15,7 +15,7 @@ library community.livecode.trevordevore.fswatch
   // https://github.com/emcrisostomo/fswatch/blob/master/libfswatch/src/libfswatch/c/cevent.h
 
   // Define fsw_cevent struct which is a parameter for callback function
-  public foreign type fsw_cevent binds to "MCAggregateTypeInfo:rere"
+  public foreign type fsw_cevent binds to "MCAggregateTypeInfo:rEre"
   // Define callback function type
   foreign handler type FSW_CEVENT_CALLBACK(in pEvents as Pointer, in pEventNum as CUInt, in pData as optional Pointer) returns nothing
 
