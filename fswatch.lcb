@@ -76,29 +76,6 @@ library community.livecode.trevordevore.fswatch
         binds to "c:libfswatch>fsw_destroy_session"
 
 
-  // CALLBACKS
-  private handler SetupCallback() returns Integer
-    // Currently no support for setting data to pass around.
-    variable tData as optional Pointer
-    variable fsw_status as Integer
-
-    unsafe
-      // Pass in reference to callback handler
-      put fsw_set_callback(sessionHandle, EventCallback, tData) into fsw_status
-    end unsafe
-
-    return fsw_status
-  end handler
-
-
-  // pEvents is a pointer to an array of fsw_cevent structures
-  // pEventNum is the size of the pEvents array
-  handler EventCallback(in pEvents as Pointer, in pEventNum as Integer, in pData as optional Pointer) returns nothing
-    log "hi there"
-  end handler
-  // END CALLBACKS
-
-
   public handler fswatchLastError() returns String
     variable tError as String
 
@@ -126,9 +103,7 @@ library community.livecode.trevordevore.fswatch
 
     unsafe
       put fsw_init_session(0) into sessionHandle
-      if sessionHandle is not nothing then
-        put SetupCallback() into fsw_status
-      else
+      if sessionHandle is nothing then
         put fsw_last_error() into fsw_status
       end if
     end unsafe
@@ -149,6 +124,31 @@ library community.livecode.trevordevore.fswatch
     end unsafe
 
     return tError
+  end handler
+
+
+  public handler fswatchSetCallback() returns String
+    // Currently no support for setting data to pass around.
+    variable tData as optional Pointer
+    variable tError as String
+
+    unsafe
+      // Pass in reference to callback handler
+      if sessionHandle is not nothing then
+        put FSW_STATUSAsString(fsw_set_callback(sessionHandle, EventCallback, tData)) into tError
+      else
+        put noSession() into tError
+      end if
+    end unsafe
+
+    return tError
+  end handler
+
+
+  // pEvents is a pointer to an array of fsw_cevent structures
+  // pEventNum is the size of the pEvents array
+  handler EventCallback(in pEvents as Pointer, in pEventNum as Integer, in pData as optional Pointer) returns nothing
+    log "hi there"
   end handler
 
 
